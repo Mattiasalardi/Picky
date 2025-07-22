@@ -3,57 +3,60 @@
 ## Phase 1: Project Setup & Foundation
 
 ### Task 1.1: Initialize Expo Project
-- [ ] Create new Expo project with TypeScript template
-- [ ] Install core dependencies (expo-media-library, expo-av, expo-haptics)
-- [ ] Configure app.json with proper name, bundle ID, and permissions
-- [ ] Set up Italian locale configuration
-- [ ] Test blank app on Expo Go
+- [x] Create new Expo project with TypeScript template
+- [x] Install core dependencies (expo-media-library, expo-av, expo-haptics)
+- [x] Configure app.json with proper name, bundle ID, and permissions
+- [x] Set up Italian locale configuration
+- [x] Test blank app on Expo Go
 
 ### Task 1.2: Navigation Structure
-- [ ] Install and configure expo-router for tab navigation
-- [ ] Create three tab screens (Pulizia, Statistiche, Impostazioni)
-- [ ] Design and implement bottom tab bar with Italian labels
-- [ ] Add proper icons for each tab
-- [ ] Ensure navigation state persists
+- [x] Install and configure expo-router for tab navigation
+- [x] Create three tab screens (Pulizia, Statistiche, Impostazioni)
+- [x] Design and implement bottom tab bar with Italian labels
+- [x] Add proper icons for each tab
+- [x] Ensure navigation state persists
 
 ### Task 1.3: Basic UI Theme
-- [ ] Create theme configuration file with colors and typography
-- [ ] Implement Italian font system (supporting special characters)
-- [ ] Set up global styles for consistent spacing
-- [ ] Create reusable UI components (Button, Card, Text)
-- [ ] Add SafeAreaView wrapper for all screens
+- [x] Create theme configuration file with colors and typography
+- [x] Implement Italian font system (supporting special characters)
+- [x] Set up global styles for consistent spacing
+- [x] Create reusable UI components (Button, Card, Text)
+- [x] Add SafeAreaView wrapper for all screens
 
 ## Phase 2: Media Library Integration
 
 ### Task 2.1: Permissions & Access
-- [ ] Implement permission request flow with Italian text
-- [ ] Handle permission denied state gracefully
-- [ ] Create MediaLibrary service wrapper
-- [ ] Test on both iOS and Android via Expo Go
-- [ ] Add error handling for missing permissions
+- [x] Implement permission request flow with Italian text
+- [x] Handle permission denied state gracefully
+- [x] Create MediaLibrary service wrapper
+- [x] Test on both iOS and Android via Expo Go
+- [x] Add error handling for missing permissions
 
 ### Task 2.2: Album Loading
-- [ ] Fetch all available albums from device
-- [ ] Implement smart album detection (WhatsApp, Screenshots, etc.)
-- [ ] Sort albums by photo count
-- [ ] Create album picker component
-- [ ] Cache album list for performance
+- [x] Fetch all available albums from device
+- [x] Implement smart album detection (WhatsApp, Screenshots, etc.)
+- [x] Sort albums by photo count
+- [x] Create album picker component
+- [x] Cache album list for performance
 
 ### Task 2.3: Photo/Video Loading
-- [ ] Load photos from selected album
-- [ ] Implement pagination for large albums
-- [ ] Handle iCloud photo downloading
-- [ ] Create progress indicator for downloads
-- [ ] Ensure videos load with audio capability
+- [x] Load photos from selected album
+- [x] Implement pagination for large albums
+- [x] Handle iCloud photo downloading
+- [x] Create progress indicator for downloads
+- [x] Ensure videos load with audio capability
+- [x] **BUGFIX**: Resolve iOS ph:// URL compatibility issues
 
 ## Phase 3: Core Swiping Interface
 
 ### Task 3.1: Swipe Card Component
-- [ ] Create SwipeCard component with gesture handling
-- [ ] Implement smooth swipe animations
-- [ ] Add swipe direction detection (left/right/up)
-- [ ] Display photo/video in card format
-- [ ] Show file size overlay
+- [x] Create SwipeCard component with gesture handling
+- [x] Implement smooth swipe animations
+- [x] Add swipe direction detection (left/right/up)
+- [x] Display photo/video in card format
+- [x] Show file size overlay
+- [x] Add visual feedback for swipe directions
+- [x] Integrate with Pulizia screen and media loading system
 
 ### Task 3.2: Media Display
 - [ ] Implement photo rendering with proper aspect ratios

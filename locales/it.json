@@ -1,0 +1,34 @@
+{
+  "app": {
+    "name": "Picky",
+    "tagline": "Organizza le tue foto in modo divertente"
+  },
+  "tabs": {
+    "cleanup": "Pulizia",
+    "stats": "Statistiche",
+    "settings": "Impostazioni"
+  },
+  "permissions": {
+    "photos": {
+      "title": "Accesso alle foto richiesto",
+      "description": "Picky deve accedere alle tue foto per aiutarti a organizzarle e liberare spazio di archiviazione.",
+      "button": "Consenti accesso"
+    }
+  },
+  "albums": {
+    "picker": {
+      "title": "Scegli album",
+      "subtitle": "Seleziona l'album da cui iniziare",
+      "allPhotos": "Tutte le foto",
+      "photoCount": "{count} foto",
+      "noAlbums": "Nessun album trovato"
+    }
+  },
+  "common": {
+    "loading": "Caricamento...",
+    "error": "Errore",
+    "ok": "OK",
+    "cancel": "Annulla",
+    "confirm": "Conferma"
+  }
+}
