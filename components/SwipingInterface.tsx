@@ -1,19 +1,22 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
   Dimensions,
   ActivityIndicator,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import SwipeCard, { SwipeDirection } from './SwipeCard';
+import CardStack from './CardStack';
 import AlbumDropdown from './AlbumDropdown';
 import { ThemedText, Button } from './UI';
 import { Theme } from '../constants/Theme';
 import { useMediaLoader } from '../hooks/useMediaLoader';
 import { MediaAsset, Album } from '../services/MediaLibraryService';
+import { SwipeActionsService } from '../services/SwipeActionsService';
 import localeStrings from '../locales/it.json';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -44,11 +47,17 @@ export default function SwipingInterface({
     kept: 0,
     favorites: 0,
   });
+  const [undoAvailable, setUndoAvailable] = useState(false);
+  const [lastActionResult, setLastActionResult] = useState<string>('');
   
-  const mediaLoader = useMediaLoader({ 
-    initialPageSize: 100, // Load more for smooth swiping
-    sortOrder: 'desc' 
-  });
+  const mediaLoaderOptions = useMemo(() => ({
+    initialPageSize: 50, // Load enough for smooth swiping without overwhelming
+    sortOrder: 'desc' as const
+  }), []);
+  
+  const mediaLoader = useMediaLoader(mediaLoaderOptions);
+  
+  const swipeActionsService = SwipeActionsService.getInstance();
 
   // Handle album selection change
   const handleAlbumChange = useCallback(async (newAlbum: Album | 'all') => {
@@ -86,7 +95,7 @@ export default function SwipingInterface({
   // Auto-load more content when approaching end
   useEffect(() => {
     const loadMoreIfNeeded = async () => {
-      if (mediaLoader.needsMoreContent() && mediaLoader.hasMore()) {
+      if (mediaLoader.needsMoreContent(currentCardIndex) && mediaLoader.hasMore()) {
         try {
           await mediaLoader.loadMore(selectedAlbum);
         } catch (error) {
@@ -98,50 +107,109 @@ export default function SwipingInterface({
     loadMoreIfNeeded();
   }, [currentCardIndex, mediaLoader, selectedAlbum]);
 
-  const handleSwipe = useCallback(async (direction: SwipeDirection, asset: MediaAsset) => {
-    // Update statistics
-    setStats(prev => {
-      const newStats = { ...prev };
-      switch (direction) {
-        case 'left':
-          newStats.deleted++;
-          break;
-        case 'right':
-          newStats.kept++;
-          break;
-        case 'up':
-          newStats.favorites++;
-          break;
+  const handleSwipe = useCallback(async (direction: SwipeDirection, asset: MediaAsset, swipeIndex?: number) => {
+    // Ensure we're only processing swipes for the current card
+    if (swipeIndex !== undefined && swipeIndex !== currentCardIndex) {
+      return;
+    }
+    try {
+      // Map swipe direction to action type
+      const actionMap = {
+        'left': 'trash' as const,
+        'right': 'keep' as const,
+        'up': 'favorites' as const,
+      };
+      
+      const action = actionMap[direction];
+      
+      // Execute the swipe action
+      const result = await swipeActionsService.executeSwipeAction(asset, action);
+      
+      if (result.success) {
+        // Update statistics
+        setStats(prev => {
+          const newStats = { ...prev };
+          switch (direction) {
+            case 'left':
+              newStats.deleted++;
+              break;
+            case 'right':
+              newStats.kept++;
+              break;
+            case 'up':
+              newStats.favorites++;
+              break;
+          }
+          newStats.total++;
+          return newStats;
+        });
+
+        // Update UI feedback
+        setLastActionResult(result.message || '');
+        setUndoAvailable(result.undoAvailable || false);
+        
+        // Check for milestone haptics
+        await swipeActionsService.checkForMilestones(stats.total + 1);
+      } else {
+        // Show error message
+        Alert.alert('Errore', result.message || 'Errore durante l\'esecuzione dell\'azione');
+        return; // Don't advance to next card on error
       }
-      newStats.total++;
-      return newStats;
-    });
 
-    // TODO: In the future, we'll actually implement:
-    // - Adding to trash for 'left' swipe
-    // - Adding to favorites for 'up' swipe
-    // - For now, we just track statistics
+      // Move to next card
+      const nextIndex = currentCardIndex + 1;
+      setCurrentCardIndex(nextIndex);
 
-    // Move to next card
-    const nextIndex = currentCardIndex + 1;
-    setCurrentCardIndex(nextIndex);
-
-    // Check if we've reached the end
-    if (nextIndex >= mediaLoader.assets.length && !mediaLoader.hasMore()) {
-      // Give a small delay for the animation to complete
-      setTimeout(() => {
-        handleComplete();
-      }, 500);
+      // Check if we've reached the end
+      if (nextIndex >= mediaLoader.assets.length && !mediaLoader.hasMore()) {
+        // Give a small delay for the animation to complete
+        setTimeout(() => {
+          handleComplete();
+        }, 500);
+      }
+      
+    } catch (error) {
+      console.error('Error handling swipe:', error);
+      Alert.alert('Errore', 'Errore inaspettato durante l\'azione');
     }
+  }, [currentCardIndex, mediaLoader, stats.total, swipeActionsService, onComplete]);
 
-    // Haptic feedback for milestone achievements
-    if (stats.total > 0 && (stats.total + 1) % 10 === 0) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+  const handleUndo = useCallback(async () => {
+    try {
+      const result = await swipeActionsService.undoLastAction();
+      
+      if (result.success) {
+        // Move back to previous card
+        const prevIndex = Math.max(0, currentCardIndex - 1);
+        setCurrentCardIndex(prevIndex);
+        
+        // Update stats by reversing the last action
+        setStats(prev => ({
+          ...prev,
+          total: Math.max(0, prev.total - 1),
+          deleted: Math.max(0, prev.deleted - (lastActionResult.includes('cestino') ? 1 : 0)),
+          kept: Math.max(0, prev.kept - (lastActionResult.includes('mantenuta') ? 1 : 0)),
+          favorites: Math.max(0, prev.favorites - (lastActionResult.includes('preferiti') ? 1 : 0)),
+        }));
+        
+        // Update UI state
+        setUndoAvailable(false);
+        setLastActionResult('Azione annullata');
+        
+        // Success haptic
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        
+      } else {
+        Alert.alert('Impossibile annullare', result.message || 'Nessuna azione da annullare');
+      }
+    } catch (error) {
+      console.error('Error undoing action:', error);
+      Alert.alert('Errore', 'Errore durante l\'annullamento');
     }
-  }, [currentCardIndex, mediaLoader, stats.total, onComplete]);
+  }, [swipeActionsService, currentCardIndex, lastActionResult]);
 
   const handleComplete = useCallback(() => {
-    const totalProcessed = stats.total + 1; // +1 for the current swipe
+    const totalProcessed = stats.total; 
     
     Alert.alert(
       'Pulizia completata!',
@@ -158,11 +226,11 @@ export default function SwipingInterface({
     );
   }, [stats, onComplete, onBack]);
 
-  const getCurrentAsset = (): MediaAsset | null => {
+  const getCurrentAsset = useCallback((): MediaAsset | null => {
     return mediaLoader.assets[currentCardIndex] || null;
-  };
+  }, [mediaLoader.assets, currentCardIndex]);
 
-  const getProgress = () => {
+  const getProgress = useCallback(() => {
     const total = mediaLoader.totalCount || mediaLoader.assets.length;
     const current = currentCardIndex + 1;
     const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
@@ -172,13 +240,18 @@ export default function SwipingInterface({
       total,
       percentage,
     };
-  };
+  }, [mediaLoader.totalCount, mediaLoader.assets.length, currentCardIndex]);
 
-  const getAlbumName = () => {
+  const getAlbumName = useCallback(() => {
     if (selectedAlbum === 'all') return 'Tutte le foto';
     return selectedAlbum.title;
-  };
+  }, [selectedAlbum]);
 
+  // Move all hooks to top level - NEVER call hooks after conditional returns
+  const currentAsset = useMemo(() => getCurrentAsset(), [getCurrentAsset]);
+  const progress = useMemo(() => getProgress(), [getProgress]);
+
+  // Handle loading state
   if (mediaLoader.loading && mediaLoader.assets.length === 0) {
     return (
       <View style={styles.container}>
@@ -195,6 +268,7 @@ export default function SwipingInterface({
     );
   }
 
+  // Handle error state
   if (mediaLoader.error) {
     return (
       <View style={styles.container}>
@@ -219,9 +293,7 @@ export default function SwipingInterface({
     );
   }
 
-  const currentAsset = getCurrentAsset();
-  const progress = getProgress();
-
+  // Handle empty state
   if (!currentAsset) {
     return (
       <View style={styles.container}>
@@ -271,6 +343,25 @@ export default function SwipingInterface({
           </ThemedText>
         </View>
 
+        {/* Action Feedback and Statistics */}
+        <View style={styles.actionFeedbackContainer}>
+          {lastActionResult ? (
+            <View style={styles.actionFeedback}>
+              <ThemedText variant="caption" style={styles.actionText}>
+                {lastActionResult}
+              </ThemedText>
+              {undoAvailable && (
+                <TouchableOpacity onPress={handleUndo} style={styles.undoButton}>
+                  <Ionicons name="arrow-undo" size={16} color={Theme.colors.primary.main} />
+                  <ThemedText variant="caption" style={styles.undoText}>
+                    Annulla
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : null}
+        </View>
+
         {/* Statistics */}
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
@@ -294,12 +385,15 @@ export default function SwipingInterface({
         </View>
       </View>
 
-      {/* Swipe Card */}
+      {/* Card Stack */}
       <View style={styles.cardContainer}>
-        <SwipeCard
-          asset={currentAsset}
+        <CardStack
+          assets={mediaLoader.assets}
+          currentIndex={currentCardIndex}
           onSwipe={handleSwipe}
-          index={currentCardIndex}
+          onLoadError={(asset) => {
+            // Could implement error handling here if needed
+          }}
         />
       </View>
 
@@ -383,6 +477,34 @@ const styles = StyleSheet.create({
     color: Theme.colors.text.secondary,
     minWidth: 35,
     textAlign: 'right',
+  },
+  actionFeedbackContainer: {
+    minHeight: 28,
+    justifyContent: 'center',
+    marginBottom: Theme.spacing.xs,
+  },
+  actionFeedback: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Theme.spacing.sm,
+  },
+  actionText: {
+    color: Theme.colors.text.secondary,
+    flex: 1,
+  },
+  undoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: Theme.spacing.sm,
+    backgroundColor: Theme.colors.background.tertiary,
+    borderRadius: Theme.spacing.radius.sm,
+  },
+  undoText: {
+    color: Theme.colors.primary.main,
+    fontWeight: '600',
   },
   statsContainer: {
     flexDirection: 'row',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,7 +6,7 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
+import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import {
@@ -38,12 +38,14 @@ interface SwipeCardProps {
   onSwipe: (direction: SwipeDirection, asset: MediaAsset) => void;
   onLoadError?: (asset: MediaAsset) => void;
   index?: number;
+  isTopCard?: boolean; // New prop to identify the active card
 }
 
-export default function SwipeCard({ asset, onSwipe, onLoadError, index = 0 }: SwipeCardProps) {
+export default function SwipeCard({ asset, onSwipe, onLoadError, index = 0, isTopCard = true }: SwipeCardProps) {
   const [localUri, setLocalUri] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  
+  const videoRef = useRef<Video>(null);
   
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -52,12 +54,42 @@ export default function SwipeCard({ asset, onSwipe, onLoadError, index = 0 }: Sw
   
   const mediaService = MediaLibraryService.getInstance();
   const isVideo = asset.mediaType === 'video';
+  
+  // Calculate optimal aspect ratio and dimensions
+  const getMediaDimensions = () => {
+    const mediaAspectRatio = asset.width / asset.height;
+    const cardAspectRatio = CARD_WIDTH / CARD_HEIGHT;
+    
+    let displayWidth = CARD_WIDTH;
+    let displayHeight = CARD_HEIGHT;
+    
+    // For landscape photos/videos
+    if (mediaAspectRatio > cardAspectRatio) {
+      displayHeight = CARD_WIDTH / mediaAspectRatio;
+    } 
+    // For portrait photos/videos
+    else if (mediaAspectRatio < cardAspectRatio) {
+      displayWidth = CARD_HEIGHT * mediaAspectRatio;
+    }
+    
+    return {
+      width: displayWidth,
+      height: displayHeight,
+      aspectRatio: mediaAspectRatio,
+      isLandscape: mediaAspectRatio > 1,
+      isPortrait: mediaAspectRatio < 1,
+      isSquare: Math.abs(mediaAspectRatio - 1) < 0.1,
+    };
+  };
+  
+  const mediaDimensions = getMediaDimensions();
 
-  // Load asset URI
+  // Load asset URI immediately
   useEffect(() => {
     const loadAsset = async () => {
+      setError(false);
+      
       if (asset.uri.startsWith('ph://')) {
-        setLoading(true);
         try {
           const downloadedUri = await mediaService.downloadAsset(asset.id);
           if (downloadedUri) {
@@ -67,11 +99,9 @@ export default function SwipeCard({ asset, onSwipe, onLoadError, index = 0 }: Sw
             onLoadError?.(asset);
           }
         } catch (err) {
-          console.error('Error loading asset for swipe card:', err);
+          console.error('Error loading asset:', asset.id, err);
           setError(true);
           onLoadError?.(asset);
-        } finally {
-          setLoading(false);
         }
       } else {
         setLocalUri(asset.uri);
@@ -79,7 +109,20 @@ export default function SwipeCard({ asset, onSwipe, onLoadError, index = 0 }: Sw
     };
 
     loadAsset();
+    
+    // Cleanup function
+    return () => {
+      setLocalUri(null);
+      setError(false);
+    };
   }, [asset.id, asset.uri, mediaService, onLoadError]);
+
+  // Handle media errors
+  const handleMediaError = () => {
+    console.error('Media load error for asset:', asset.id);
+    setError(true);
+    onLoadError?.(asset);
+  };
 
   // Handle swipe completion
   const handleSwipeComplete = (direction: SwipeDirection) => {
@@ -104,17 +147,17 @@ export default function SwipeCard({ asset, onSwipe, onLoadError, index = 0 }: Sw
                 direction === 'right' ? SCREEN_WIDTH : 0;
     const toY = direction === 'up' ? -SCREEN_HEIGHT : 0;
     
-    translateX.value = withSpring(toX, { damping: 15 });
+    translateX.value = withSpring(toX, { damping: 15 }, () => {
+      runOnJS(handleSwipeComplete)(direction);
+    });
     translateY.value = withSpring(toY, { damping: 15 });
     scale.value = withSpring(0.8, { damping: 15 });
-    
-    // Complete swipe after animation
-    setTimeout(() => runOnJS(handleSwipeComplete)(direction), 200);
   };
 
   // Pan gesture
   const panGesture = Gesture.Pan()
     .onUpdate((event) => {
+      'worklet';
       translateX.value = event.translationX;
       translateY.value = event.translationY;
       
@@ -133,6 +176,7 @@ export default function SwipeCard({ asset, onSwipe, onLoadError, index = 0 }: Sw
       );
     })
     .onEnd((event) => {
+      'worklet';
       const { translationX, translationY, velocityX, velocityY } = event;
       
       // Determine swipe direction and threshold
@@ -154,6 +198,7 @@ export default function SwipeCard({ asset, onSwipe, onLoadError, index = 0 }: Sw
 
   // Animated styles
   const cardAnimatedStyle = useAnimatedStyle(() => {
+    'worklet';
     return {
       transform: [
         { translateX: translateX.value },
@@ -166,6 +211,7 @@ export default function SwipeCard({ asset, onSwipe, onLoadError, index = 0 }: Sw
 
   // Overlay styles for visual feedback
   const leftOverlayStyle = useAnimatedStyle(() => {
+    'worklet';
     const opacity = interpolate(
       translateX.value,
       [-SWIPE_THRESHOLD, -50, 0],
@@ -176,6 +222,7 @@ export default function SwipeCard({ asset, onSwipe, onLoadError, index = 0 }: Sw
   });
 
   const rightOverlayStyle = useAnimatedStyle(() => {
+    'worklet';
     const opacity = interpolate(
       translateX.value,
       [0, 50, SWIPE_THRESHOLD],
@@ -186,6 +233,7 @@ export default function SwipeCard({ asset, onSwipe, onLoadError, index = 0 }: Sw
   });
 
   const upOverlayStyle = useAnimatedStyle(() => {
+    'worklet';
     const opacity = interpolate(
       translateY.value,
       [-SWIPE_THRESHOLD, -50, 0],
@@ -205,7 +253,7 @@ export default function SwipeCard({ asset, onSwipe, onLoadError, index = 0 }: Sw
     return `${size.replace('.', ',')} ${sizes[i]}`;
   };
 
-  const shouldShowMedia = !loading && !error && localUri && !localUri.startsWith('ph://');
+  const shouldShowMedia = !error && localUri && !localUri.startsWith('ph://');
 
   if (error) {
     return (
@@ -219,6 +267,9 @@ export default function SwipeCard({ asset, onSwipe, onLoadError, index = 0 }: Sw
             <ThemedText variant="caption" style={styles.errorSubtext}>
               {asset.filename}
             </ThemedText>
+            <ThemedText variant="caption" style={styles.errorDetails}>
+              {mediaDimensions.isLandscape ? 'Orizzontale' : mediaDimensions.isPortrait ? 'Verticale' : 'Quadrato'} • {asset.width}×{asset.height}
+            </ThemedText>
           </View>
         </Animated.View>
       </View>
@@ -229,39 +280,62 @@ export default function SwipeCard({ asset, onSwipe, onLoadError, index = 0 }: Sw
     <GestureHandlerRootView style={styles.container}>
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.card, cardAnimatedStyle]}>
-          {loading || (asset.uri.startsWith('ph://') && !localUri) ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={Theme.colors.primary.main} />
-              <ThemedText variant="body" style={styles.loadingText}>
-                Caricamento...
-              </ThemedText>
-            </View>
-          ) : !shouldShowMedia ? (
-            <View style={styles.loadingContainer}>
-              <Ionicons name="image-outline" size={64} color={Theme.colors.text.tertiary} />
-              <ThemedText variant="body" style={styles.loadingText}>
-                Media non disponibile
-              </ThemedText>
-            </View>
-          ) : isVideo ? (
-            <Video
-              source={{ uri: localUri }}
-              style={styles.media}
-              resizeMode={ResizeMode.CONTAIN}
-              shouldPlay={true}
-              isLooping={true}
-              isMuted={false}
-              useNativeControls={false}
-              onError={() => setError(true)}
-            />
-          ) : (
-            <Image 
-              source={{ uri: localUri }}
-              style={styles.media}
-              resizeMode="contain"
-              onError={() => setError(true)}
-            />
-          )}
+          {/* Media Container with proper aspect ratio */}
+          <View style={styles.mediaContainer}>
+            {shouldShowMedia ? (
+              isVideo ? (
+                <Video
+                  key={asset.id}
+                  ref={videoRef}
+                  source={{ uri: localUri }}
+                  style={[
+                    styles.media,
+                    {
+                      width: mediaDimensions.width,
+                      height: mediaDimensions.height,
+                    }
+                  ]}
+                  resizeMode={mediaDimensions.isLandscape ? ResizeMode.CONTAIN : ResizeMode.COVER}
+                  shouldPlay={isTopCard}
+                  isLooping={true}
+                  isMuted={!isTopCard}
+                  useNativeControls={false}
+                  onError={handleMediaError}
+                />
+              ) : (
+                <Image 
+                  key={asset.id}
+                  source={{ uri: localUri }}
+                  style={[
+                    styles.media,
+                    {
+                      width: mediaDimensions.width,
+                      height: mediaDimensions.height,
+                    }
+                  ]}
+                  resizeMode={mediaDimensions.isLandscape ? 'contain' : 'cover'}
+                  onError={handleMediaError}
+                />
+              )
+            ) : (
+              // Simple placeholder while media loads
+              <View style={styles.placeholderContainer}>
+                <View style={[
+                  styles.placeholder,
+                  {
+                    width: mediaDimensions.width,
+                    height: mediaDimensions.height,
+                  }
+                ]}>
+                  <Ionicons 
+                    name={isVideo ? "videocam-outline" : "image-outline"} 
+                    size={48} 
+                    color={Theme.colors.text.tertiary} 
+                  />
+                </View>
+              </View>
+            )}
+          </View>
 
           {/* Media Info Overlay */}
           <View style={styles.infoOverlay}>
@@ -354,18 +428,30 @@ const styles = StyleSheet.create({
     marginTop: Theme.spacing.sm,
     textAlign: 'center',
   },
-  loadingContainer: {
+  mediaContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  media: {
+    borderRadius: Theme.spacing.radius.xl,
+  },
+  errorDetails: {
+    color: Theme.colors.text.tertiary,
+    marginTop: Theme.spacing.xs,
+    textAlign: 'center',
+  },
+  placeholderContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    color: Theme.colors.text.secondary,
-    marginTop: Theme.spacing.md,
-  },
-  media: {
-    width: '100%',
-    height: '100%',
+  placeholder: {
+    backgroundColor: Theme.colors.background.tertiary,
+    borderRadius: Theme.spacing.radius.xl,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   infoOverlay: {
     position: 'absolute',
