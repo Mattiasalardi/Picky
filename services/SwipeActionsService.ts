@@ -77,6 +77,9 @@ export class SwipeActionsService {
       // Record the action for history and statistics
       await this.storageService.recordSwipeAction(asset.id, 'keep');
       
+      // Update global statistics
+      await this.updateGlobalStatistics({ kept: 1, deleted: 0, favorites: 0, bytesDeleted: 0 });
+      
       // Provide gentle haptic feedback
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       
@@ -105,6 +108,14 @@ export class SwipeActionsService {
       // Record the action
       await this.storageService.recordSwipeAction(asset.id, 'trash');
       
+      // Update global statistics
+      await this.updateGlobalStatistics({ 
+        kept: 0, 
+        deleted: 1, 
+        favorites: 0, 
+        bytesDeleted: asset.fileSize || 0 
+      });
+      
       // Provide moderate haptic feedback
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       
@@ -132,6 +143,9 @@ export class SwipeActionsService {
       
       // Record the action
       await this.storageService.recordSwipeAction(asset.id, 'favorites');
+      
+      // Update global statistics
+      await this.updateGlobalStatistics({ kept: 0, deleted: 0, favorites: 1, bytesDeleted: 0 });
       
       // Provide strong haptic feedback
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -309,6 +323,23 @@ export class SwipeActionsService {
     } catch (error) {
       console.error('Error calculating storage saved:', error);
       return { bytes: 0, mb: '0,0 MB' };
+    }
+  }
+
+  /**
+   * Update global statistics
+   */
+  private async updateGlobalStatistics(stats: { 
+    kept: number; 
+    deleted: number; 
+    favorites: number; 
+    bytesDeleted: number; 
+  }): Promise<void> {
+    try {
+      await this.storageService.updateStatistics(stats);
+    } catch (error) {
+      console.error('Error updating global statistics:', error);
+      // Don't throw - statistics updates are not critical for core functionality
     }
   }
 

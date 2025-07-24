@@ -28,6 +28,8 @@ export function useMediaLoader(options: UseMediaLoaderOptions = {}) {
 
   const mediaService = useRef(MediaLibraryService.getInstance()).current;
   const loadingRef = useRef(false);
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
 
   const loadMedia = useCallback(async (
     source: Album | 'all',
@@ -43,12 +45,12 @@ export function useMediaLoader(options: UseMediaLoaderOptions = {}) {
     try {
       const loadOptions: MediaLoadOptions = {
         albumId: source === 'all' ? undefined : source.id,
-        pageSize: options.initialPageSize || 20,
+        pageSize: optionsRef.current.initialPageSize || 20,
         sortBy: 'creationTime',
         sortOrder: 'desc',
         includePhotos: true,
         includeVideos: true,
-        ...options,
+        ...optionsRef.current,
       };
 
       const result = await mediaService.getMediaAssets(
@@ -80,7 +82,7 @@ export function useMediaLoader(options: UseMediaLoaderOptions = {}) {
     } finally {
       loadingRef.current = false;
     }
-  }, [mediaService, options, state.endCursor, state.hasNextPage, state.assets]);
+  }, [mediaService, state.hasNextPage, state.endCursor, state.assets]);
 
   const loadMore = useCallback(async (source: Album | 'all') => {
     return loadMedia(source, true);
@@ -137,10 +139,11 @@ export function useMediaLoader(options: UseMediaLoaderOptions = {}) {
     return state.hasNextPage;
   }, [state.hasNextPage]);
 
-  const needsMoreContent = useCallback(() => {
+  const needsMoreContent = useCallback((currentIndex?: number) => {
     // Load more when we're within 5 items of the end
     const threshold = 5;
-    return state.currentIndex >= (state.assets.length - threshold) && state.hasNextPage;
+    const indexToCheck = currentIndex !== undefined ? currentIndex : state.currentIndex;
+    return indexToCheck >= (state.assets.length - threshold) && state.hasNextPage;
   }, [state.currentIndex, state.assets.length, state.hasNextPage]);
 
   return {

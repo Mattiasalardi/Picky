@@ -35,7 +35,7 @@ export default function Card({
     },
     elevated && styles.elevated,
     style,
-  ];
+  ] as any;
 
   return (
     <View style={cardStyle} {...props}>

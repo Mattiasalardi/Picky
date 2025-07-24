@@ -7,9 +7,9 @@ This file should be updated by the AI assistant after completing each subtask fr
 ---
 
 ## Current Status
-**Last Updated:** 2025-07-22
-**Current Phase:** Phase 3: Core Swiping Interface  
-**Completed Tasks:** Task 1.1 ✓, Task 1.2 ✓, Task 1.3 ✓, Task 2.1 ✓, Task 2.2 ✓, Task 2.3 ✓, Task 3.1 ✓
+**Last Updated:** 2025-07-23
+**Current Phase:** Phase 4: Data Management  
+**Completed Tasks:** Task 1.1 ✓, Task 1.2 ✓, Task 1.3 ✓, Task 2.1 ✓, Task 2.2 ✓, Task 2.3 ✓, Task 3.1 ✓, Task 3.2 ✓, Task 3.3 ✓, Task 4.2 ✓
 
 ---
 
@@ -41,6 +41,7 @@ picky/
 │   ├── MediaLoader.tsx   # Media preview and loading component
 │   ├── SwipeCard.tsx     # Individual swipeable media card with gestures
 │   ├── SwipingInterface.tsx # Complete swiping experience with stats
+│   ├── TrashManager.tsx  # Complete trash management interface with grid view
 │   └── UI/               # Theme-based UI components
 │       ├── index.ts      # Component exports
 │       ├── ThemedText.tsx # Typography component
@@ -51,7 +52,9 @@ picky/
 │   ├── useMediaLibraryPermissions.ts # Permission management
 │   └── useMediaLoader.ts  # Media loading and pagination state
 ├── services/             # Business logic services
-│   └── MediaLibraryService.ts # Media library wrapper
+│   ├── MediaLibraryService.ts # Media library wrapper
+│   ├── StorageService.ts   # AsyncStorage wrapper for data persistence
+│   └── SwipeActionsService.ts # Core swipe actions and business logic
 ├── constants/            # App constants and theme
 │   ├── Colors.ts         # Color palette
 │   ├── Typography.ts     # Typography system
@@ -66,6 +69,7 @@ picky/
 {
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "expo": "~53.0.20",
     "expo-av": "^15.1.7",
     "expo-haptics": "^14.1.4", 
@@ -239,3 +243,45 @@ picky/
 - Added Italian instructions and feedback throughout swiping experience
 - Key decisions: 90% screen width cards, 25% screen width swipe threshold, milestone haptics
 - Next steps: Begin Task 3.2 - Media Display
+
+### 2025-07-23 - Task 3.2 Completed
+- Enhanced photo rendering with intelligent aspect ratio calculations for optimal display
+- Improved video player with better autoplay, looping, and audio support
+- Added comprehensive orientation handling for portrait, landscape, and square media
+- Implemented detailed loading states with progress indicators for both initial load and content rendering
+- Enhanced error states with media dimension information and Italian error messages
+- Added separate loading states for images vs videos with appropriate feedback
+- Improved video playback with status monitoring and seamless looping
+- Optimized media sizing to maintain aspect ratios while fitting within card constraints
+- Added iCloud download progress indicators with Italian messaging
+- Enhanced visual feedback with content loading overlays and error details
+- Key decisions: Dynamic media sizing based on aspect ratio, separate loading states for URI vs content
+- Next steps: Begin Task 3.3 - Swipe Actions
+
+### 2025-07-23 - Task 3.3 Completed
+- Installed @react-native-async-storage/async-storage@2.2.0 for persistent data storage
+- Created comprehensive StorageService for managing trash, favorites, swipe history, and statistics
+- Built SwipeActionsService to handle all swipe action business logic with proper error handling
+- Implemented complete swipe action functionality: keep (statistics only), trash (in-app storage), favorites (in-app collection)
+- Added intelligent haptic feedback system with different intensities for different actions and milestones
+- Built full undo functionality with ability to reverse last swipe action and return to previous card
+- Enhanced SwipingInterface with real-time action feedback and undo button in header
+- Added comprehensive error handling and Italian messaging throughout swipe actions
+- Implemented milestone detection with special haptic feedback every 10, 50, and 100 items
+- Created persistent data structures for trash management, favorites collection, and statistics tracking
+- Key decisions: In-app data storage (not system delete), comprehensive undo system, milestone-based feedback
+- Next steps: Begin Phase 4 - Data Management (Task 4.2 - Trash System)
+
+### 2025-07-23 - Task 4.2 Completed (Trash System)
+- Created comprehensive TrashManager component with grid view for deleted items
+- Built complete trash management UI with photo/video previews, deletion dates, and file sizes
+- Implemented individual item restoration with confirmation dialogs and haptic feedback
+- Added empty trash functionality with system confirmation and batch deletion
+- Enhanced Statistics screen with complete trash section showing count, size, and management interface
+- Integrated real-time statistics tracking with ranking system (Novizio → Principiante → Bronzo → Argento → Oro)
+- Added automatic global statistics updates in SwipeActionsService for all actions
+- Built comprehensive error handling and Italian messaging throughout trash system
+- Fixed all TypeScript compilation errors and ensured full Expo compatibility
+- Successfully tested app compilation and export process
+- Key decisions: Grid-based trash preview, in-place restoration, real-time statistics updates
+- Next steps: Begin Task 4.1 - Progress Tracking or Task 4.3 - Favorites Collection

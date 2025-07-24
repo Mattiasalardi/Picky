@@ -22,6 +22,7 @@ export function useMediaLibraryPermissions(): UseMediaLibraryPermissionsResult {
     setIsLoading(true);
     try {
       const status = await mediaService.getPermissionStatus();
+      console.log('MEDIA LIBRARY PERMISSION STATUS:', status);
       setPermissionStatus(status);
     } catch (error) {
       console.error('Error checking permission status:', error);

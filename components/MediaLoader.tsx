@@ -159,7 +159,8 @@ export default function MediaLoader({
     const [localUri, setLocalUri] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(false);
-    const isVideo = asset.mediaType === 'video';
+    const isVideo = asset.mediaType?.toString().toLowerCase().includes('video') || 
+                    asset.filename?.toLowerCase().match(/\.(mp4|mov|avi|mkv|webm)$/);
 
     useEffect(() => {
       const loadAsset = async () => {
@@ -194,14 +195,14 @@ export default function MediaLoader({
         {loading || (asset.uri.startsWith('ph://') && !localUri) ? (
           <View style={styles.loadingPreview}>
             <ActivityIndicator size="small" color={Theme.colors.primary.main} />
-            <ThemedText variant="caption" style={styles.loadingPreviewText}>
+            <ThemedText variant="caption1" style={styles.loadingPreviewText}>
               Caricamento...
             </ThemedText>
           </View>
         ) : error || !shouldShowMedia ? (
           <View style={styles.errorPreview}>
             <Ionicons name="image-outline" size={24} color={Theme.colors.text.tertiary} />
-            <ThemedText variant="caption" style={styles.errorPreviewText}>
+            <ThemedText variant="caption1" style={styles.errorPreviewText}>
               Errore caricamento
             </ThemedText>
           </View>
@@ -224,7 +225,7 @@ export default function MediaLoader({
                 color="white" 
               />
               {asset.duration && (
-                <ThemedText variant="caption" style={styles.videoDuration}>
+                <ThemedText variant="caption1" style={styles.videoDuration}>
                   {Math.round(asset.duration / 1000)}s
                 </ThemedText>
               )}
@@ -246,7 +247,7 @@ export default function MediaLoader({
         )}
         
         <View style={styles.mediaInfo}>
-          <ThemedText variant="caption" style={styles.mediaSize}>
+          <ThemedText variant="caption1" style={styles.mediaSize}>
             {formatFileSize(asset.fileSize)}
           </ThemedText>
         </View>
@@ -273,7 +274,7 @@ export default function MediaLoader({
           {state.error}
         </ThemedText>
         <ThemedText 
-          variant="caption" 
+          variant="caption1" 
           color="primary" 
           style={styles.retryText}
           onPress={() => loadMedia(false)}
@@ -302,7 +303,7 @@ export default function MediaLoader({
               </ThemedText>
               {state.hasNextPage && (
                 <ThemedText 
-                  variant="caption" 
+                  variant="caption1" 
                   color="primary"
                   style={styles.loadMoreText}
                   onPress={loadMoreMedia}
@@ -320,7 +321,7 @@ export default function MediaLoader({
           {state.loading && state.assets.length > 0 && (
             <View style={styles.loadingMore}>
               <ActivityIndicator size="small" color={Theme.colors.primary.main} />
-              <ThemedText variant="caption" style={styles.loadingMoreText}>
+              <ThemedText variant="caption1" style={styles.loadingMoreText}>
                 Caricamento...
               </ThemedText>
             </View>

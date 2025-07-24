@@ -6,7 +6,7 @@ export interface MediaAsset {
   id: string;
   filename: string;
   uri: string;
-  mediaType: MediaLibrary.MediaType;
+  mediaType: any;
   width: number;
   height: number;
   creationTime: number;
@@ -39,6 +39,7 @@ export class MediaLibraryService {
   private static instance: MediaLibraryService;
   private albumsCache: Album[] | null = null;
   private albumsCacheTimestamp: number = 0;
+  private uriCache: Map<string, string> = new Map(); // Cache for asset URIs
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
   // Smart album titles that get priority (Italian and English variants)
@@ -151,7 +152,7 @@ export class MediaLibraryService {
           title: album.title,
           assetCount: album.assetCount,
           type: album.type,
-          isSmartAlbum: album.type === 'smart',
+          isSmartAlbum: album.type === 'smart' as any,
           priority: this.getAlbumPriority(album),
         }))
         .filter(album => album.assetCount > 0) // Only include albums with photos
@@ -200,22 +201,25 @@ export class MediaLibraryService {
         first,
         after,
         album: albumId,
-        mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video],
+        mediaType: ['photo', 'video'],
         sortBy: MediaLibrary.SortBy.creationTime,
       });
 
-      const assets: MediaAsset[] = result.assets.map(asset => ({
-        id: asset.id,
-        filename: asset.filename,
-        uri: asset.uri,
-        mediaType: asset.mediaType,
-        width: asset.width,
-        height: asset.height,
-        creationTime: asset.creationTime,
-        modificationTime: asset.modificationTime,
-        duration: asset.duration,
-        albumId,
-      }));
+      const assets: MediaAsset[] = result.assets.map((asset) => {
+        return {
+          id: asset.id,
+          filename: asset.filename,
+          uri: asset.uri, // Keep original URI, resolve later if needed
+          mediaType: asset.mediaType,
+          width: asset.width,
+          height: asset.height,
+          creationTime: asset.creationTime,
+          modificationTime: asset.modificationTime,
+          duration: asset.duration,
+          albumId,
+          fileSize: (asset as any).fileSize,
+        };
+      });
 
       return {
         assets,
@@ -247,7 +251,7 @@ export class MediaLibraryService {
       const result = await MediaLibrary.getAssetsAsync({
         first,
         after,
-        mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video],
+        mediaType: ['photo', 'video'],
         sortBy: MediaLibrary.SortBy.creationTime,
       });
 
@@ -301,9 +305,9 @@ export class MediaLibraryService {
 
     try {
       // Determine media types to include
-      const mediaTypes: MediaLibrary.MediaType[] = [];
-      if (includePhotos) mediaTypes.push(MediaLibrary.MediaType.photo);
-      if (includeVideos) mediaTypes.push(MediaLibrary.MediaType.video);
+      const mediaTypes: any[] = [];
+      if (includePhotos) mediaTypes.push('photo');
+      if (includeVideos) mediaTypes.push('video');
 
       if (mediaTypes.length === 0) {
         throw new Error('At least one media type must be included');
@@ -382,37 +386,24 @@ export class MediaLibraryService {
     }
   }
 
-  /**
-   * Download iCloud asset to device and get proper local URI
-   */
   async downloadAsset(assetId: string): Promise<string | null> {
     try {
+      // Check cache first
+      if (this.uriCache.has(assetId)) {
+        return this.uriCache.get(assetId)!;
+      }
+
       const assetInfo = await MediaLibrary.getAssetInfoAsync(assetId);
+      const resolvedUri = assetInfo.localUri || assetInfo.uri;
       
-      // If it's a network asset (iCloud), we need to get the local URI
-      if (assetInfo.isNetworkAsset) {
-        // The localUri should be available for network assets
-        if (assetInfo.localUri && !assetInfo.localUri.startsWith('ph://')) {
-          return assetInfo.localUri;
-        }
-        
-        // If no localUri available, we can't use this asset
-        console.warn('Network asset has no accessible localUri:', assetId);
-        return null;
+      // Cache the result for future use
+      if (resolvedUri) {
+        this.uriCache.set(assetId, resolvedUri);
       }
       
-      // For local assets, prefer localUri over uri
-      const uri = assetInfo.localUri || assetInfo.uri;
-      
-      // Ensure we don't return ph:// URIs
-      if (uri && uri.startsWith('ph://')) {
-        console.warn('Asset still has ph:// URI after info fetch:', assetId);
-        return null;
-      }
-      
-      return uri;
+      return resolvedUri;
     } catch (error) {
-      console.error('Error downloading asset:', error);
+      console.error('Error downloading/resolving asset:', error);
       return null;
     }
   }

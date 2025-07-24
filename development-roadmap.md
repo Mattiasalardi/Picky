@@ -59,18 +59,18 @@
 - [x] Integrate with Pulizia screen and media loading system
 
 ### Task 3.2: Media Display
-- [ ] Implement photo rendering with proper aspect ratios
-- [ ] Add video player with autoplay and sound
-- [ ] Handle different media orientations
-- [ ] Add loading states for media
-- [ ] Implement error states for corrupted files
+- [x] Implement photo rendering with proper aspect ratios
+- [x] Add video player with autoplay and sound
+- [x] Handle different media orientations
+- [x] Add loading states for media
+- [x] Implement error states for corrupted files
 
 ### Task 3.3: Swipe Actions
-- [ ] Connect right swipe to "keep" action
-- [ ] Connect left swipe to "trash" action
-- [ ] Connect up swipe to "favorites" action
-- [ ] Add visual feedback for each swipe direction
-- [ ] Implement undo functionality
+- [x] Connect right swipe to "keep" action
+- [x] Connect left swipe to "trash" action
+- [x] Connect up swipe to "favorites" action
+- [x] Add visual feedback for each swipe direction
+- [x] Implement undo functionality
 
 ## Phase 4: Data Management
 
@@ -82,11 +82,11 @@
 - [ ] Save viewing history persistently
 
 ### Task 4.2: Trash System
-- [ ] Create in-app trash storage
-- [ ] Track deleted items with metadata
-- [ ] Calculate and display trash size
-- [ ] Implement empty trash functionality
-- [ ] Handle system delete confirmation
+- [x] Create in-app trash storage
+- [x] Track deleted items with metadata
+- [x] Calculate and display trash size
+- [x] Implement empty trash functionality
+- [x] Handle system delete confirmation
 
 ### Task 4.3: Favorites Collection
 - [ ] Create Picky Favorites storage system

@@ -15,6 +15,8 @@ export const Theme = {
       main: Colors.primary.purple,
       light: Colors.primary.purpleLight,
       dark: Colors.primary.purpleDark,
+      purple: Colors.primary.purple,
+      yellow: Colors.primary.yellow,
     },
     secondary: {
       main: Colors.primary.yellow,

@@ -72,7 +72,7 @@ export default function AlbumPicker({ onSelectAlbum, visible, onClose }: AlbumPi
     <View style={styles.overlay}>
       <View style={styles.modal}>
         <View style={styles.header}>
-          <ThemedText variant="title" style={styles.title}>
+          <ThemedText variant="title1" style={styles.title}>
             {localeStrings.albums.picker.title}
           </ThemedText>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -112,7 +112,7 @@ export default function AlbumPicker({ onSelectAlbum, visible, onClose }: AlbumPi
                     <ThemedText variant="body" style={styles.albumTitle}>
                       {localeStrings.albums.picker.allPhotos}
                     </ThemedText>
-                    <ThemedText variant="caption" style={styles.albumSubtitle}>
+                    <ThemedText variant="caption1" style={styles.albumSubtitle}>
                       Tutte le foto e video del dispositivo
                     </ThemedText>
                   </View>
@@ -158,7 +158,7 @@ export default function AlbumPicker({ onSelectAlbum, visible, onClose }: AlbumPi
                         <ThemedText variant="body" style={styles.albumTitle}>
                           {album.title}
                         </ThemedText>
-                        <ThemedText variant="caption" style={styles.albumSubtitle}>
+                        <ThemedText variant="caption1" style={styles.albumSubtitle}>
                           {formatPhotoCount(album.assetCount)}
                           {album.isSmartAlbum && ' • Album intelligente'}
                         </ThemedText>

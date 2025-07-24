@@ -104,7 +104,7 @@ export default function AlbumDropdown({
         >
           <View style={styles.dropdownContent}>
             <View style={styles.header}>
-              <ThemedText variant="title" style={styles.headerTitle}>
+              <ThemedText variant="title1" style={styles.headerTitle}>
                 Scegli Album
               </ThemedText>
               <TouchableOpacity onPress={() => setIsOpen(false)}>
@@ -143,7 +143,7 @@ export default function AlbumDropdown({
                         <ThemedText variant="body" style={styles.albumTitle}>
                           Tutte le foto
                         </ThemedText>
-                        <ThemedText variant="caption" style={styles.albumSubtitle}>
+                        <ThemedText variant="caption1" style={styles.albumSubtitle}>
                           Tutte le foto e video del dispositivo
                         </ThemedText>
                       </View>
@@ -180,7 +180,7 @@ export default function AlbumDropdown({
                           <ThemedText variant="body" style={styles.albumTitle}>
                             {album.title}
                           </ThemedText>
-                          <ThemedText variant="caption" style={styles.albumSubtitle}>
+                          <ThemedText variant="caption1" style={styles.albumSubtitle}>
                             {formatPhotoCount(album.assetCount)}
                             {album.isSmartAlbum && ' • Album intelligente'}
                           </ThemedText>

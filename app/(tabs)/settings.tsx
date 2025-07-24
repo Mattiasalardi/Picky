@@ -21,7 +21,7 @@ export default function SettingsScreen() {
           <View style={styles.settingsContainer}>
             <Card style={styles.settingCard}>
               <View style={styles.settingHeader}>
-                <Ionicons name="vibration-outline" size={24} color={Theme.colors.primary.purple} />
+                <Ionicons name="phone-portrait-outline" size={24} color={Theme.colors.primary.purple} />
                 <ThemedText variant="headline">
                   Feedback aptico
                 </ThemedText>

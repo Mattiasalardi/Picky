@@ -50,12 +50,10 @@ export default function SwipingInterface({
   const [undoAvailable, setUndoAvailable] = useState(false);
   const [lastActionResult, setLastActionResult] = useState<string>('');
   
-  const mediaLoaderOptions = useMemo(() => ({
+  const mediaLoader = useMediaLoader({
     initialPageSize: 50, // Load enough for smooth swiping without overwhelming
     sortOrder: 'desc' as const
-  }), []);
-  
-  const mediaLoader = useMediaLoader(mediaLoaderOptions);
+  });
   
   const swipeActionsService = SwipeActionsService.getInstance();
 
@@ -72,7 +70,7 @@ export default function SwipingInterface({
       console.error('Error switching album:', error);
       Alert.alert('Errore', 'Impossibile caricare il nuovo album');
     }
-  }, [selectedAlbum, mediaLoader]);
+  }, [selectedAlbum, mediaLoader.refresh]);
 
   // Load media when component mounts or album changes
   useEffect(() => {
@@ -90,7 +88,7 @@ export default function SwipingInterface({
     };
 
     loadInitialMedia();
-  }, [selectedAlbum, mediaLoader, onBack]);
+  }, [selectedAlbum, mediaLoader.loadMedia, onBack]);
 
   // Auto-load more content when approaching end
   useEffect(() => {
@@ -105,7 +103,7 @@ export default function SwipingInterface({
     };
 
     loadMoreIfNeeded();
-  }, [currentCardIndex, mediaLoader, selectedAlbum]);
+  }, [currentCardIndex, selectedAlbum, mediaLoader.needsMoreContent, mediaLoader.hasMore, mediaLoader.loadMore]);
 
   const handleSwipe = useCallback(async (direction: SwipeDirection, asset: MediaAsset, swipeIndex?: number) => {
     // Ensure we're only processing swipes for the current card
@@ -162,10 +160,7 @@ export default function SwipingInterface({
 
       // Check if we've reached the end
       if (nextIndex >= mediaLoader.assets.length && !mediaLoader.hasMore()) {
-        // Give a small delay for the animation to complete
-        setTimeout(() => {
-          handleComplete();
-        }, 500);
+        handleComplete();
       }
       
     } catch (error) {
@@ -260,7 +255,7 @@ export default function SwipingInterface({
           <ThemedText variant="body" style={styles.loadingText}>
             Preparazione delle foto...
           </ThemedText>
-          <ThemedText variant="caption" style={styles.loadingSubtext}>
+          <ThemedText variant="caption1" style={styles.loadingSubtext}>
             {getAlbumName()}
           </ThemedText>
         </View>
@@ -299,7 +294,7 @@ export default function SwipingInterface({
       <View style={styles.container}>
         <View style={styles.emptyContainer}>
           <Ionicons name="checkmark-circle" size={64} color={Theme.colors.system.success} />
-          <ThemedText variant="title" style={styles.emptyTitle}>
+          <ThemedText variant="title1" style={styles.emptyTitle}>
             Album completato!
           </ThemedText>
           <ThemedText variant="body" style={styles.emptyText}>
@@ -326,7 +321,7 @@ export default function SwipingInterface({
             style={styles.albumDropdown}
           />
           <View style={styles.albumInfo}>
-            <ThemedText variant="caption" color="secondary" style={styles.progressInfo}>
+            <ThemedText variant="caption1" color="secondary" style={styles.progressInfo}>
               {progress.current} di {progress.total.toLocaleString('it-IT')}
             </ThemedText>
           </View>
@@ -338,7 +333,7 @@ export default function SwipingInterface({
               style={[styles.progressFill, { width: `${progress.percentage}%` }]}
             />
           </View>
-          <ThemedText variant="caption" style={styles.progressText}>
+          <ThemedText variant="caption1" style={styles.progressText}>
             {progress.percentage}%
           </ThemedText>
         </View>
@@ -347,13 +342,13 @@ export default function SwipingInterface({
         <View style={styles.actionFeedbackContainer}>
           {lastActionResult ? (
             <View style={styles.actionFeedback}>
-              <ThemedText variant="caption" style={styles.actionText}>
+              <ThemedText variant="caption1" style={styles.actionText}>
                 {lastActionResult}
               </ThemedText>
               {undoAvailable && (
                 <TouchableOpacity onPress={handleUndo} style={styles.undoButton}>
                   <Ionicons name="arrow-undo" size={16} color={Theme.colors.primary.main} />
-                  <ThemedText variant="caption" style={styles.undoText}>
+                  <ThemedText variant="caption1" style={styles.undoText}>
                     Annulla
                   </ThemedText>
                 </TouchableOpacity>
@@ -366,19 +361,19 @@ export default function SwipingInterface({
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <Ionicons name="trash" size={16} color={Theme.colors.system.error} />
-            <ThemedText variant="caption" style={styles.statText}>
+            <ThemedText variant="caption1" style={styles.statText}>
               {stats.deleted}
             </ThemedText>
           </View>
           <View style={styles.statItem}>
             <Ionicons name="checkmark-circle" size={16} color={Theme.colors.system.success} />
-            <ThemedText variant="caption" style={styles.statText}>
+            <ThemedText variant="caption1" style={styles.statText}>
               {stats.kept}
             </ThemedText>
           </View>
           <View style={styles.statItem}>
             <Ionicons name="heart" size={16} color={Theme.colors.secondary.main} />
-            <ThemedText variant="caption" style={styles.statText}>
+            <ThemedText variant="caption1" style={styles.statText}>
               {stats.favorites}
             </ThemedText>
           </View>
@@ -403,7 +398,7 @@ export default function SwipingInterface({
           <View style={styles.swipeIndicator}>
             <Ionicons name="arrow-back" size={20} color={Theme.colors.system.error} />
           </View>
-          <ThemedText variant="caption" style={styles.instructionText}>
+          <ThemedText variant="caption1" style={styles.instructionText}>
             Scorri a sinistra per eliminare
           </ThemedText>
         </View>
@@ -411,7 +406,7 @@ export default function SwipingInterface({
           <View style={styles.swipeIndicator}>
             <Ionicons name="arrow-up" size={20} color={Theme.colors.secondary.main} />
           </View>
-          <ThemedText variant="caption" style={styles.instructionText}>
+          <ThemedText variant="caption1" style={styles.instructionText}>
             Scorri in alto per i preferiti
           </ThemedText>
         </View>
@@ -419,7 +414,7 @@ export default function SwipingInterface({
           <View style={styles.swipeIndicator}>
             <Ionicons name="arrow-forward" size={20} color={Theme.colors.system.success} />
           </View>
-          <ThemedText variant="caption" style={styles.instructionText}>
+          <ThemedText variant="caption1" style={styles.instructionText}>
             Scorri a destra per mantenere
           </ThemedText>
         </View>
